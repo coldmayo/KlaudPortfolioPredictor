@@ -16,6 +16,8 @@ def main():
 
 	for s in stocks:
 		df = y.download(s, period="10y", interval="1d", auto_adjust=True)
+		df.reset_index(inplace=True)
+		
 		df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
 
 		df["ticker"] = s
@@ -65,5 +67,5 @@ def main():
 	full_df = pd.get_dummies(full_df, columns=["ticker"], prefix="stock")
 	full_df.to_csv("dataset.csv", index=False)
 
-if "__main__" == __name__:
+if __name__ == "__main__":
     main()
