@@ -1,0 +1,8 @@
+{
+    "data_pth": "dataset.csv",
+    "model_type": "SVM",
+    "lr": 0.0001,
+    "lambda": 0.01,
+    "epochs": -1,
+    "iters": 1000
+}

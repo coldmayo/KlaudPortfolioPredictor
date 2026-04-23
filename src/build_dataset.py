@@ -58,7 +58,13 @@ def main():
 		df["obv_ratio"] = df["OBV"] / df["obv_ma_10"]
 
 		# Target
-		df["target"] = (df["Close"].shift(-1) > df["Close"]).astype(int)
+		# Need to implement a threshold to mitigate noise issues
+		
+		k = 1.5
+
+		df["target"] = 0
+		df.loc[df["fwd_ret"] > k * df["volatility_10"], "target"] = 1
+		df.loc[df["fwd_ret"] < -k * df["volatility_10"], "target"] = -1
 
 		df = df.dropna()
 		dfs.append(df)
