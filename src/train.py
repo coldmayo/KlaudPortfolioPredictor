@@ -4,6 +4,7 @@ import argparse
 import json
 from nn.RF import *
 from nn.SVM import *
+from nn.xgboost import *
 
 def train_test_split(x, y, dates, split_date):
     mask = dates < np.datetime64(split_date)
@@ -104,7 +105,24 @@ def main(args):
 
         print(f"Accuracy: {acc:.4f}")
         print(f"Signal Accuracy: {sig_acc:.4f}")
-    
+        
+    elif config.get("model_type", "XGBoost") == "XGBoost":
+        model = XGBoost(
+            n_estimators = config.get("estimators", 10),
+            learning_rate = config.get("lr", 0.1),
+            max_depth = config.get("max_depth", 3)
+        )
+
+        print("Training XGBoost...")
+        model.fit(X_train, y_train)
+
+        preds = model.predict(X_test)
+
+        acc = accuracy(y_test, preds)
+        sig_acc = signal_accuracy(y_test, preds)
+
+        print(f"Accuracy: {acc:.4f}")
+        print(f"Signal Accuracy: {sig_acc:.4f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

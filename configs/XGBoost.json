@@ -1,0 +1,7 @@
+{
+    "data_pth": "dataset.csv",
+    "model_type": "XGBoost",
+    "lr": 0.01,
+    "max_depth": 3,
+    "estimators": 10
+}
