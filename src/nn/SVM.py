@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 class SVM():
     def __init__(self, lr, lambda_p, iters):
@@ -19,7 +20,7 @@ class SVM():
         self.w = np.zeros(n_feats)
         self.b = 0
 
-        for i in range(self.iters):
+        for i in tqdm(range(self.iters)):
             for j, x_i in enumerate(x):
                 condition = y_[j] * (np.dot(x_i, self.w) - self.b) >= 1
 

@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import argparse
 import json
+import pickle
+import os
+
 from nn.RF import *
 from nn.SVM import *
 from nn.xgboost import *
@@ -28,7 +31,7 @@ def load_csv(pth):
         raise ValueError("Dataset must contain a 'Date' column for time-based split.")
 
     # Split features / target
-    X = df.drop(columns=["target", "Date"]).values
+    X = df.drop(columns=["target", "Date", "fwd_ret"]).values
     y = df["target"].values
     dates = df["Date"].values
 
@@ -67,6 +70,10 @@ def main(args):
         X, y, dates, split_date="2022-01-01"
     )
 
+    df = pd.DataFrame(X_train)
+    df['target'] = y_train
+    print(df.corr()['target'].sort_values())
+
     # Takes about 4 minuites to run on the chud machine (with defualt config)
     if config.get("model_type", "Random Forest") == "Random Forest":
         model = RForest(
@@ -87,6 +94,14 @@ def main(args):
         print(f"Accuracy: {acc:.4f}")
         print(f"Signal Accuracy: {sig_acc:.4f}")
 
+        if "model_out" in config:
+            print("Saving model...")
+            path = "../models/"
+            os.makedirs(path, exist_ok=True)
+            path = path + config.get("model_out", "RF.pkl")
+            with open(path, "wb") as f:
+                pickle.dump(model, f)
+
     # Can train on my chud laptop for a neglagble amount of time
     elif config.get("model_type", "SVM") == "SVM":
         model = SVM(
@@ -105,6 +120,14 @@ def main(args):
 
         print(f"Accuracy: {acc:.4f}")
         print(f"Signal Accuracy: {sig_acc:.4f}")
+
+        if "model_out" in config:
+            print("Saving model...")
+            path = "../models/"
+            os.makedirs(path, exist_ok=True)
+            path = path + config.get("model_out", "SVM.pkl")
+            with open(path, "wb") as f:
+                pickle.dump(model, f)
         
     elif config.get("model_type", "XGBoost") == "XGBoost":
         model = XGBoost(
@@ -123,6 +146,14 @@ def main(args):
 
         print(f"Accuracy: {acc:.4f}")
         print(f"Signal Accuracy: {sig_acc:.4f}")
+
+        if "model_out" in config:
+            print("Saving model...")
+            path = "../models/"
+            os.makedirs(path, exist_ok=True)
+            path = path + config.get("model_out", "XGB.pkl")
+            with open(path, "wb") as f:
+                pickle.dump(model, f)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

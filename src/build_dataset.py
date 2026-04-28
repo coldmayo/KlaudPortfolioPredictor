@@ -10,7 +10,7 @@ from features import RSI, sto_osc, will_R, OBV
 # features: momentum, volativity, trend, volume behavior
 
 def build_sequ(df, window=60):
-    X, y = []
+    X, y = [], []
 
     data = df.values
     targets = df["target"]
@@ -34,12 +34,11 @@ def main(args):
 
 		df["ticker"] = s
 		if args.type == "time":
-			df.dropna()
-
+			df = df.dropna()
 			feature_cols = [col for col in df.columns if col not in ["Date", "ticker", "target", "fwd_ret"]]
-			X, y = build_sequ(df, feature_cols, 60)
+			X, y_ = build_sequ(df, feature_cols, 60)
 
-			dfs.append((X, y))
+			dfs.append((X, y_))
 
 		elif args.type == "tabular":
 
@@ -98,11 +97,11 @@ def main(args):
 		full_df.to_csv("dataset.csv", index=False)
 
 	elif args.type == "time":
-    	X_all = np.concatenate([x for x, _ in dfs], axis=0)
-    	y_all = np.concatenate([y for _, y in dfs], axis=0)
+		X_all = np.concatenate([x for x, _ in dfs], axis=0)
+		y_all = np.concatenate([y for _, y in dfs], axis=0)
 
-    	np.save("X.npy", X_all)
-    	np.save("y.npy", y_all)
+		np.save("X.npy", X_all)
+		np.save("y.npy", y_all)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

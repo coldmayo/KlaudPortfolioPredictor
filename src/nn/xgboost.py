@@ -11,10 +11,11 @@ class Node():
         self.value = value
 
 class DTree():
-    def __init__(self, min_samples = 2, max_depth = 3):
+    def __init__(self, min_samples = 2, max_depth = 3, gamma = 0.00):
         self.min_samples = min_samples
         self.max_depth = max_depth
         self.root = None
+        self.gamma = gamma
 
     def mse(self, y):
         if len(y) == 0:
@@ -78,7 +79,7 @@ class DTree():
         ):
             split = self.best_split(dataset, n_features)
 
-            if split and split["gain"] > 0:
+            if split and split["gain"] > self.gamma:
                 left_subtree = self.build_tree(split["left"], depth + 1)
                 right_subtree = self.build_tree(split["right"], depth + 1)
 
@@ -95,7 +96,7 @@ class DTree():
         return Node(value=leaf_value)
 
     def _majority_vote(self, y):
-        return max(set(y), key=list(y).count)
+        return np.mean(y)
 
     def fit(self, X, y):
         data = np.concatenate((X, y.reshape(-1, 1)), axis=1)
@@ -120,28 +121,43 @@ class XGBoost():
         self.learning_rate = learning_rate
         self.max_depth = max_depth
 
+    def sigmoid(self, x):
+        x = np.clip(x, -15, 15)
+        return 1 / (1 + np.exp(-x))
+
     def fit(self, X, y):
-        self.base_pred = np.mean(y)
-        y_pred = np.full_like(y, self.base_pred, dtype=float)
+        y_mapped = np.where(y == -1, 0, 1)
+        
+        prob_mean = np.mean(y_mapped)
+        self.base_pred = np.log(prob_mean / (1 - prob_mean + 1e-9))
+        
+        f_t = np.full_like(y_mapped, self.base_pred, dtype=float)
 
-        for _ in tqdm(range(self.n_estimators)):
-            # Compute residuals
-            residuals = y - y_pred
+        #print(np.unique(y, return_counts=True))
 
-            # Fit tree to residuals
+        for i in tqdm(range(self.n_estimators)):
+            p = self.sigmoid(f_t)
+            residuals = y_mapped - p
+
             tree = DTree(max_depth=self.max_depth)
             tree.fit(X, residuals)
-
-            update = tree.predict(X)
-
-            y_pred += self.learning_rate * update
-
+    
+            tree_preds = tree.predict(X)
+            #print(f"  tree pred range: [{tree_preds.min():.4f}, {tree_preds.max():.4f}], unique vals: {len(np.unique(tree_preds))}")
+    
+            f_t += self.learning_rate * tree_preds
             self.trees.append(tree)
 
     def predict(self, X):
-        y_pred = np.full(X.shape[0], self.base_pred)
+        # Start with base log(odds)
+        f_t = np.full(X.shape[0], self.base_pred)
 
         for tree in self.trees:
-            y_pred += self.learning_rate * tree.predict(X)
-
-        return y_pred
+            f_t += self.learning_rate * tree.predict(X)
+        
+        # Convert log(odds) to probability
+        probs = self.sigmoid(f_t)
+        
+        # Convert probabilities back to your original labels {-1, 1}
+        # Using 0.5 as the threshold
+        return np.where(probs >= 0.5, 1, -1)

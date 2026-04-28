@@ -156,3 +156,16 @@ class RForest:
             max(set(row), key=list(row).count)
             for row in tree_preds.T
         ])
+    def predict_probs(self, X):
+        tree_preds = np.array([tree.predict(X) for tree in self.trees])
+
+        self.classes_ = np.unique(tree_preds)
+        n_samples = X.shape[0]
+        n_classes = len(self.classes_)
+
+        proba = np.zeros((n_samples, n_classes))
+
+        for i, cls in enumerate(self.classes_):
+            proba[:, i] = np.sum(tree_preds == cls, axis=0) / self.num_trees
+
+        return proba
