@@ -35,6 +35,22 @@ class DTree():
 
         return parent_e - weighted_e
 
+    def get_feature_importance(self, num_features):
+        importances = np.zeros(num_features)
+    
+        def _collect_importance(node):
+            if node is None or node.feature is None:
+                return
+            
+            # Correctly increment importance for the feature used in this split
+            importances[node.feature] += node.gain
+            
+            _collect_importance(node.left)
+            _collect_importance(node.right)
+
+        _collect_importance(self.root)
+        return importances
+
     def best_split(self, dataset, num_features):
         best_split = {}
         max_gain = -float("inf")
@@ -125,6 +141,19 @@ class XGBoost():
         x = np.clip(x, -15, 15)
         return 1 / (1 + np.exp(-x))
 
+    def get_feature_importances(self, X):
+        n_features = X.shape[1]
+        total_importances = np.zeros(n_features)
+
+    # Sum importances from all trees
+        for tree in self.trees:
+            total_importances += tree.get_feature_importance(n_features)
+
+        if np.sum(total_importances) > 0:
+            total_importances /= np.sum(total_importances)
+        
+        return total_importances
+
     def fit(self, X, y):
         y_mapped = np.where(y == -1, 0, 1)
         
@@ -149,15 +178,11 @@ class XGBoost():
             self.trees.append(tree)
 
     def predict(self, X):
-        # Start with base log(odds)
         f_t = np.full(X.shape[0], self.base_pred)
 
         for tree in self.trees:
             f_t += self.learning_rate * tree.predict(X)
         
-        # Convert log(odds) to probability
         probs = self.sigmoid(f_t)
-        
-        # Convert probabilities back to your original labels {-1, 1}
-        # Using 0.5 as the threshold
+
         return np.where(probs >= 0.5, 1, -1)

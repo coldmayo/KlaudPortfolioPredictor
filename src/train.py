@@ -70,11 +70,6 @@ def main(args):
         X, y, dates, split_date="2022-01-01"
     )
 
-    df = pd.DataFrame(X_train)
-    df['target'] = y_train
-    print(df.corr()['target'].sort_values())
-
-    # Takes about 4 minuites to run on the chud machine (with defualt config)
     if config.get("model_type", "Random Forest") == "Random Forest":
         model = RForest(
             num_trees=config.get("num_trees", 10),
@@ -85,6 +80,13 @@ def main(args):
 
         print("Training Random Forest...")
         model.fit(X_train, y_train)
+
+        importances = model.get_feature_importances(X_train)
+        indices = np.argsort(importances)[::-1]
+        for i in range(5):
+            print(f"Feature {indices[i]}: {importances[indices[i]]:.4f}")
+
+        print("Validation testing...")
 
         preds = model.predict(X_test)
 
@@ -102,12 +104,13 @@ def main(args):
             with open(path, "wb") as f:
                 pickle.dump(model, f)
 
-    # Can train on my chud laptop for a neglagble amount of time
-    elif config.get("model_type", "SVM") == "SVM":
+    elif config["model_type"] == "SVM":
         model = SVM(
-            lr = config.get("lr", 0.001),
-            lambda_p = config.get("lambda", 0.01),
-            iters = config.get("iters", 100)
+            tol = config.get("tol", 1e-3),
+            C = config.get("C", 1),
+            kernel = config.get("kernel", "linear"),
+            sigma = config.get("sigma", 1),
+            degree = config.get("degree", 3)
         )
 
         print("Training SVM...")

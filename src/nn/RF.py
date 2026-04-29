@@ -30,6 +30,21 @@ class DTree:
 
         return entropy
 
+    def get_feature_importance(self, num_features):
+        importances = np.zeros(num_features)
+    
+        def _collect_importance(node):
+            if node is None or node.feature is None:
+                return
+        
+        importances[node.feature] += node.gain
+        
+        _collect_importance(node.left)
+        _collect_importance(node.right)
+
+        _collect_importance(self.root)
+        return importances
+
     def info_gain(self, parent, left, right):
         parent_e = self.entropy(parent)
 
@@ -133,6 +148,18 @@ class RForest:
         n_samples = X.shape[0]
         idxs = np.random.choice(n_samples, n_samples, replace=True)
         return X[idxs], y[idxs]
+
+    def get_feature_importances(self, X):
+        n_features = X.shape[1]
+        total_importances = np.zeros(n_features)
+
+        for tree in self.trees:
+            total_importances += tree.get_feature_importance(n_features)
+
+        if np.sum(total_importances) > 0:
+            total_importances /= np.sum(total_importances)
+
+        return total_importances
 
     def fit(self, X, y):
         self.trees = []

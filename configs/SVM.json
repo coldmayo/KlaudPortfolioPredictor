@@ -1,9 +1,11 @@
 {
     "data_pth": "dataset.csv",
     "model_type": "SVM",
-    "lr": 0.0001,
-    "lambda": 0.01,
-    "epochs": -1,
+    "kernel": "rbf",
+    "degree": 3,
+    "sigma": 1,
+    "C": 1,
+    "tol": 1e-3,
     "iters": 3000,
     "model_out": "svm.pkl"
 }

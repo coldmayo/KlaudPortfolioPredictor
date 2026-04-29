@@ -1,2 +1,71 @@
 # Finance Terms
+- I need notes for all the finance terms I use
 
+## Terms in data
+- Returns
+	- the gain or loss on an investment over a specified period
+	- $R = \frac{P_{current}-P_{previous}}{P_{previous}}$
+	- Log Returns: $ln(\frac{P_{current}}{P_{previous}})$
+- Moving Averages
+	- calculates the average price of a security over a specific number of days
+	- Simple Moving Averages: $\frac{P_1 + P_2 + ... +P_n}{n}$
+- Volatility
+	- rate and severity at which a stock’s price increases or decreases over a specific period
+	- Standard Deviation of returns
+- Overnight Gap
+	- price discontinuities where a stock opens higher or lower than its previous close
+	- $\text{Gap} = \text{Open}_{today}-\text{Close}_{yest}$
+- Intraday Range
+	- difference between an asset's highest and lowest prices during a single trading session
+	- $\text{Range} = \text{High}_{session}-\text{Low}_{session}$
+- 52 week breakout momentum
+	- trading strategy based on buying stocks that have recently risen above their highest price over the past year
+- Volume
+	- Total number of shares traded during a period
+- Relative Strength Index (RSI)
+	- momentum indicator that measures the speed and magnitude of recent price changes
+	- $RS = \frac{\text{Average Gain over n periods}}{Average Loss over n periods}$
+	- $RSI = 100 - (\frac{100}{1+RS})$
+- Stochastic Oscillator
+	- momentum indicator that compares a security's closing price to its price range over a specific period
+	- $\% K = (\frac{C-L_n}{H_n - L_n})\times 100$
+	- $C$: Closing Price
+	- $L_n$: Lowest Low over the last $n$ periods
+	- $H_n$: Highest High over the last $n$ periods
+- Williams %R
+	- momentum indicator that shows the current closing price in relation to the high and low of the past N days
+	- $\% R = \frac{H_n - C}{H_n - L_n}$
+- On Balance Volume (OBV)
+	- measures buying and selling pressure by accumulating volume on up days and subtracting it on down days
+	- If Close $>$ Previous Close: $\text{OBV}_{curr} = \text{OBV}_{prev}+Volume$
+	- If Close $<$ Previous Close: $\text{OBV}_{curr} = \text{OBV}_{prev}-Volume$
+	- If Close $=$ Previous Close: $\text{OBV}_{curr} = \text{OBV}_{prev}$
+
+## Backtesting Terms
+
+- Alpha
+	- Determines the direction and magnitude of the trade
+	- For Random Forest, it subtracts the "down" probability from the "up" probability. For SVM/XGBoost, it uses the raw prediction.
+- Strategy Returns
+	- The return of the strategy at a specific time step, adjusted for the costs of executing those trades.
+	- $R_{strat} = (\alpha\times R_{raw})-(\text{Turnover}\times\text{TC})$
+		- $R_{raw}$: The underlying asset's price change
+		- Transaction Cost: Penalty applied to every trade to simulate slippage and commsions
+		- Turnover: measures how much the position changed from the previous period
+			- $\text{Turnover} = |np.diff(\alpha)|$
+- Cumulative Returns
+	- The aggregate return of the strategy over the entire testing period, assuming all profits are reinvested
+	- $\text{Cum} = \prod_{i=1}^{t}(1+R_i)$
+- Sharpe Ratio
+	- Measure of risk-adjusted return. It tells you how much excess return you are receiving for the extra volatility that you endure for holding a riskier asset
+	- $\text{Sharpe}=\frac{\mu_{returns}}{\sigma_{returns}}\times \sqrt{N}$
+		- $\mu_{returns}$: Average Return per Period
+		- $\sigma_{returns}$: Volatility of returns
+		- $N$: Periods
+- Maximum Drawdown
+	- observed loss from a peak to a trough of a portfolio, before a new peak is attained
+	- $\text{Drawdown}=\frac{\text{Value}_t - \text{Peak}_t}{\text{Peak}_t}$
+	- $\text{Max DD}= min(\text{Drawdown})$
+- Hit/Win Rate
+	- percentage of periods where the strategy generated a positive return
+	- $\text{Hit Rate} = \frac{\text{Number of Positive Return Periods}}{\text{Total Number of Periods}}$

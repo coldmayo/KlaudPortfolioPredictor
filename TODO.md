@@ -1,6 +1,5 @@
 # TODO
 
-- Implement
 - [ ] Random Forest
 	- [x] Basic
 	- [ ] GPU enabled (CUDA)
@@ -10,4 +9,5 @@
 	- [ ] GPU (CUDA)
 	- [ ] Parallelized (OpenMPI)
 - [ ] RNN
+- [ ] Get accuracy up beyond 55% percent
 - [ ] Transformer NN

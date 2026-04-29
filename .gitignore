@@ -3,7 +3,7 @@ src/__pycache__/
 src/nn/__pycache__/
 src/nn/__pycache__/RF.cpython-314.pyc
 models/
-src/models/rf.pkl
-src/models/SVM.pkl
-src/models/XGB.pkl
+models/rf.pkl
+models/SVM.pkl
+models/XGB.pkl
 notes/.obsidian/

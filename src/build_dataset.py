@@ -47,20 +47,37 @@ def main(args):
 			df["ret_1d"] = df["Close"].pct_change(1)   # 1 day return
 			df["ret_5d"] = df["Close"].pct_change(5)   # 5 day return
 			df["ret_10d"] = df["Close"].pct_change(10)   # 10 day return
+			df["ret_20d"] = df["Close"].pct_change(20)
 
-			df["fwd_ret"] = df["Close"].pct_change(1).shift(-1)
+			df["fwd_ret"] = df["Close"].pct_change(5).shift(-5)
 
 		# Moving Averages
 			df["ma_10"] = df["Close"].rolling(10).mean()
 			df["ma_50"] = df["Close"].rolling(50).mean()
-			df["ma_ratio"] = df["ma_10"] / df["ma_50"]
+			df["ma_200"] = df["Close"].rolling(200).mean()
+			df["ma_ratio_10_50"] = df["ma_10"] / df["ma_50"]
+			df["ma_ratio_50_200"] = df["ma_50"] / df["ma_200"]
 
 		# Volatility
+			df["volatility_5"] = df["ret_1d"].rolling(5).std()
 			df["volatility_10"] = df["ret_1d"].rolling(10).std()
+			df["volatility_20"] = df["ret_1d"].rolling(20).std()
+			df["vol_ratio"] = df["volatility_5"] / df["volatility_20"]
+
+		
+			df["overnight_gap"] = df["Open"] / df["Close"].shift(1) - 1
+			df["intraday_range"] = (df["High"] - df["Low"]) / df["Close"]
+			df["close_position"] = (df["Close"] - df["Low"]) / (df["High"] - df["Low"] + 1e-9)
+
+			# 52-week high proximity (breakout momentum)
+			df["high_52w"] = df["Close"].rolling(252).max()
+			df["proximity_52w_high"] = df["Close"] / df["high_52w"]
 
 		# Volume Features
 			df["vol_change"] = df["Volume"].pct_change()
 			df["vol_ma_10"] = df["Volume"].rolling(10).mean()
+			df["vol_ma_20"] = df["Volume"].rolling(20).mean()
+			df["vol_surprise"] = df["Volume"] / df["vol_ma_20"]
 
 		# Relative Str Index
 			df["RSI"] = RSI(df["Close"], 14)
@@ -85,8 +102,8 @@ def main(args):
 			k = 1.5
 
 			df["target"] = 0
-			df.loc[df["fwd_ret"] > k * df["volatility_10"], "target"] = 1
-			df.loc[df["fwd_ret"] < -k * df["volatility_10"], "target"] = -1
+			df.loc[df["fwd_ret"] > k * df["volatility_20"], "target"] = 1
+			df.loc[df["fwd_ret"] < -k * df["volatility_20"], "target"] = -1
 
 			df = df.dropna()
 			dfs.append(df)
@@ -94,6 +111,9 @@ def main(args):
 	if args.type == "tabular":
 		full_df = pd.concat(dfs)
 		full_df = pd.get_dummies(full_df, columns=["ticker"], prefix="stock")
+		
+		print(full_df.corr()['target'].sort_values())
+		
 		full_df.to_csv("dataset.csv", index=False)
 
 	elif args.type == "time":
