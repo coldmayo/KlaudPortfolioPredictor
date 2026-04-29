@@ -2,3 +2,7 @@ src/dataset.csv
 src/__pycache__/
 src/nn/__pycache__/
 src/nn/__pycache__/RF.cpython-314.pyc
+src/models/rf.pkl
+src/models/SVM.pkl
+src/models/XGB.pkl
+src/notes/.obsidian/
