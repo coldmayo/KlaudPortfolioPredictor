@@ -30,6 +30,15 @@ def load_csv(pth):
     else:
         raise ValueError("Dataset must contain a 'Date' column for time-based split.")
 
+    correlation_series = (
+        df.drop(columns=["Date", "fwd_ret"])
+          .corr()["target"]
+          .sort_values(ascending=False)
+    )
+
+    print("Feature Correlations with Target:")
+    print(correlation_series)
+
     # Split features / target
     X = df.drop(columns=["target", "Date", "fwd_ret"]).values
     y = df["target"].values
@@ -67,7 +76,7 @@ def main(args):
     X, y, dates = X[mask], y[mask], dates[mask]
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, dates, split_date="2022-01-01"
+        X, y, dates, split_date="2026-01-01"
     )
 
     if config.get("model_type", "Random Forest") == "Random Forest":

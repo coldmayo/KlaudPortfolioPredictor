@@ -22,7 +22,7 @@ def build_sequ(df, window=60):
 
 def main(args):
 
-	stocks = ["AAPL", "AMD", "GOOGL", "AMZN", "BA", "CAT", "CELH", "XOM", "GTLB", "HAS", "JNJ", "MSGS", "MSFT", "NVDA", "ORCL", "PFE", "RDDT", "HOOD", "^GSPC", "^VIX"]   # Technically stocks and ETFs
+	stocks = ["AAPL", "AMD", "GOOGL", "AMZN", "BA", "CAT", "CELH", "XOM", "HAS", "JNJ", "NVDA", "ORCL", "RDDT", "^GSPC"]   # Technically stocks and ETFs
 
 	dfs = []
 
@@ -112,7 +112,7 @@ def main(args):
 		full_df = pd.concat(dfs)
 		full_df = pd.get_dummies(full_df, columns=["ticker"], prefix="stock")
 		
-		print(full_df.corr()['target'].sort_values())
+		#print(full_df.corr()['target'].sort_values())
 		
 		full_df.to_csv("dataset.csv", index=False)
 

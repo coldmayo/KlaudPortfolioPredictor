@@ -183,6 +183,7 @@ class RForest:
             max(set(row), key=list(row).count)
             for row in tree_preds.T
         ])
+
     def predict_probs(self, X):
         tree_preds = np.array([tree.predict(X) for tree in self.trees])
 
