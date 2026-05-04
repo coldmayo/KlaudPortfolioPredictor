@@ -172,7 +172,6 @@ class XGBoost():
             tree.fit(X, residuals)
     
             tree_preds = tree.predict(X)
-            #print(f"  tree pred range: [{tree_preds.min():.4f}, {tree_preds.max():.4f}], unique vals: {len(np.unique(tree_preds))}")
     
             f_t += self.learning_rate * tree_preds
             self.trees.append(tree)

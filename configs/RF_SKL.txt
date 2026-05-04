@@ -1,0 +1,10 @@
+{
+    "data_pth": "dataset.csv",
+    "model_type": "Random Forest Skl",
+    "num_trees": 50,
+    "max_depth": 7,
+    "min_samples": 5,
+    "max_features": 7,
+    "epochs": -1,
+    "model_out": "rf_mpi.pkl"
+}

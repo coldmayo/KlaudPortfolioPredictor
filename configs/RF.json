@@ -1,7 +1,7 @@
 {
     "data_pth": "dataset.csv",
     "model_type": "Random Forest",
-    "num_trees": 3,
+    "num_trees": 20,
     "max_depth": 7,
     "min_samples": 2,
     "max_features": 3,

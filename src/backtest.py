@@ -4,9 +4,12 @@ import pickle
 import json
 from train import load_csv, train_test_split
 
-def pred_alpha(model, X_test, y_test, model_type):
+def pred_alpha(model, X_test, y_test, model_type, proba = None):
+    alpha = 0
     if model_type == "Random Forest":
-        proba = model.predict_probs(X_test)
+        if proba is None:
+            proba = model.predict_probs(X_test)
+            
         classes = np.array(model.classes_)
 
         # Rule out the 0 class
