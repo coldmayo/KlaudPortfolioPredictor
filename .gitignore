@@ -7,3 +7,6 @@ models/rf.pkl
 models/SVM.pkl
 models/XGB.pkl
 notes/.obsidian/
+.venv/
+.ipynb_checkpoints/
+*.out

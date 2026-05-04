@@ -1,6 +1,7 @@
 import pandas as pd
 import yfinance as y
 import argparse
+import numpy as np
 
 from features import RSI, sto_osc, will_R, OBV
 
@@ -70,7 +71,7 @@ def main(args):
 			df["close_position"] = (df["Close"] - df["Low"]) / (df["High"] - df["Low"] + 1e-9)
 
 			# 52-week high proximity (breakout momentum)
-			df["high_52w"] = df["Close"].rolling(252).max()
+			df["high_52w"] = df["Close"].expanding().max()
 			df["proximity_52w_high"] = df["Close"] / df["high_52w"]
 
 		# Volume Features
@@ -96,14 +97,40 @@ def main(args):
 			df["obv_ma_10"] = df["OBV"].rolling(10).mean()
 			df["obv_ratio"] = df["OBV"] / df["obv_ma_10"]
 
-		# Target
-		# Need to implement a threshold to mitigate noise issues
+            # Relative performance vs market (alpha signal)
+			#df["ret_rel_market"] = df["ret_5d"] - market_ret_5d
+
+# Price momentum ranked cross-sectionally (very powerful)
+			df["mom_1m"] = df["Close"].pct_change(21)
+			df["mom_3m"] = df["Close"].pct_change(63)
+			df["mom_6m"] = df["Close"].pct_change(126)
+			df["mom_12m_skip1m"] = df["Close"].shift(21).pct_change(252)  # skip 1mo, classic factor
+
+# Mean reversion
+			df["dist_from_ma50"] = (df["Close"] - df["ma_50"]) / df["ma_50"]
+			df["dist_from_ma200"] = (df["Close"] - df["ma_200"]) / df["ma_200"]
+
+# Volatility-adjusted momentum
+			df["sharpe_5d"] = df["ret_1d"].rolling(5).mean() / (df["ret_1d"].rolling(5).std() + 1e-9)
+			df["sharpe_20d"] = df["ret_1d"].rolling(20).mean() / (df["ret_1d"].rolling(20).std() + 1e-9)
+
+# Volume-price divergence
+			df["price_vol_diverge"] = df["ret_5d"] / (df["vol_surprise"] + 1e-9)
+
+# Trend strength (ADX-like)
+			df["trend_consistency"] = df["ret_1d"].rolling(10).apply(lambda x: np.sum(x > 0) / len(x))
+
+# Lagged returns (autocorrelation signal)
+			for lag in [1, 2, 3, 5, 10]:
+				df[f"ret_lag_{lag}"] = df["ret_1d"].shift(lag)
 		
 			k = 1.5
 
 			df["target"] = 0
-			df.loc[df["fwd_ret"] > k * df["volatility_20"], "target"] = 1
-			df.loc[df["fwd_ret"] < -k * df["volatility_20"], "target"] = -1
+			df.loc[df["fwd_ret"] > 0.01, "target"] = 1
+			df.loc[df["fwd_ret"] < -0.01, "target"] = -1
+
+			#df = df.drop(columns=["Open", "High", "Low", "Close", "Volume"])
 
 			df = df.dropna()
 			dfs.append(df)

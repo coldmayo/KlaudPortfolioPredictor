@@ -8,8 +8,9 @@ import os
 from nn.RF import *
 from nn.SVM import *
 from nn.xgboost import *
+from nn.RF_opt import *
 
-def train_test_split(x, y, dates, split_date):
+def train_test_split(x, y, dates, split_date, random_state=None):
     mask = dates < np.datetime64(split_date)
 
     X_train = x[mask]
@@ -18,7 +19,10 @@ def train_test_split(x, y, dates, split_date):
     y_train = y[mask]
     y_test = y[~mask]
 
-    return X_train, X_test, y_train, y_test
+    rng = np.random.default_rng(random_state)
+    perm = rng.permutation(len(X_train))
+
+    return X_train[perm], X_test, y_train[perm], y_test
 
 def load_csv(pth):
     df = pd.read_csv(pth)
@@ -80,6 +84,7 @@ def main(args):
     )
 
     if config.get("model_type", "Random Forest") == "Random Forest":
+        
         model = RForest(
             num_trees=config.get("num_trees", 10),
             max_depth=config.get("max_depth", 10),
@@ -112,7 +117,7 @@ def main(args):
             path = path + config.get("model_out", "RF.pkl")
             with open(path, "wb") as f:
                 pickle.dump(model, f)
-
+        
     elif config["model_type"] == "SVM":
         model = SVM(
             tol = config.get("tol", 1e-3),
