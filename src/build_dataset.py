@@ -13,13 +13,20 @@ from features import RSI, sto_osc, will_R, OBV
 def build_sequ(df, window=60):
     X, y = [], []
 
-    data = df.values
-    targets = df["target"]
+    df["fwd_ret"] = df["Close"].pct_change(5).shift(-5)
+    df["target"] = 0
+    df.loc[df["fwd_ret"] > 0.01, "target"] = 1
+    df.loc[df["fwd_ret"] < -0.01, "target"] = -1
 
-    for i in range(len(df) - window):
+    feature_cols = [c for c in df.columns if c not in ["Date", "ticker", "target", "fwd_ret"]]
+    data = df[feature_cols].values  # snapshot AFTER feature cols are ready
+    targets = df["target"].values
+
+    for i in range(len(df) - window - 5):  # -5 to avoid label leakage at the end
         X.append(data[i:i+window])
-        y.append(targets[i:i+window])
-    
+        y.append(targets[i + window])      # single label at window end
+
+    return np.array(X), np.array(y)
 
 def main(args):
 
@@ -36,8 +43,8 @@ def main(args):
 		df["ticker"] = s
 		if args.type == "time":
 			df = df.dropna()
-			feature_cols = [col for col in df.columns if col not in ["Date", "ticker", "target", "fwd_ret"]]
-			X, y_ = build_sequ(df, feature_cols, 60)
+			# feature_cols = [col for col in df.columns if col not in ["Date", "ticker", "target", "fwd_ret"]]
+			X, y_ = build_sequ(df, 60)
 
 			dfs.append((X, y_))
 

@@ -9,4 +9,5 @@ models/XGB.pkl
 notes/.obsidian/
 .venv/
 .ipynb_checkpoints/
+*.npy
 *.out

@@ -3,11 +3,11 @@
 - [ ] Random Forest
 	- [x] Basic
 	- [ ] GPU enabled (CUDA)
-	- [ ] Parallelized (OpenMPI)
+	- [x] Parallelized (OpenMPI)
 - [ ] SVM
 	- [x] Basic
 	- [ ] GPU (CUDA)
 	- [ ] Parallelized (OpenMPI)
-- [ ] RNN
+- [x] RNN/LSTM
 - [ ] Get accuracy up beyond 55% percent
 - [ ] Transformer NN
