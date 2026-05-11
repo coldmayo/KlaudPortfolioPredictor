@@ -16,24 +16,25 @@ class Node:
 
 
 class DTree:
-    def __init__(self, min_samples=2, max_depth=10, max_feats=None):
+    def __init__(self, min_samples=2, max_depth=10, max_feats=None, class_weights=None):
         self.min_samples = min_samples
         self.max_depth = max_depth
         self.max_features = max_feats
+        self.class_weights = class_weights
         self.root = None
 
     def entropy(self, y):
         if len(y) == 0:
             return 0
 
-        entropy = 0
-        labels = np.unique(y)
+        labels, counts = np.unique(y, return_counts=True)
 
-        for label in labels:
-            p = np.sum(y == label) / len(y)
-            entropy -= p * np.log2(p)
+        if self.class_weights is not None:
+            weights = np.array([self.class_weights[l] for l in labels])
+            counts = counts * weights  # weight each class
 
-        return entropy
+        probs = counts / counts.sum()
+        return -np.sum(probs * np.log2(probs + 1e-12))
 
     def get_feature_importance(self, num_features):
         importances = np.zeros(num_features)
@@ -50,10 +51,17 @@ class DTree:
         _collect_importance(self.root)
         return importances
 
+    def weighted_len(self, y):
+        if self.class_weights is None:
+            return len(y)
+
+        weights = np.vectorize(self.class_weights.get)(y)
+        return np.sum(weights)
+
     def info_gain(self, parent, left, right):
 
-        w_l = len(left) / len(parent)
-        w_r = len(right) / len(parent)
+        w_l = self.weighted_len(left) / self.weighted_len(parent)
+        w_r = self.weighted_len(right) / self.weighted_len(parent)
 
         return (self.entropy(parent) - w_l * self.entropy(left) - w_r * self.entropy(right))
 
@@ -113,7 +121,13 @@ class DTree:
         return Node(value=self._majority_vote(y))
 
     def _majority_vote(self, y):
-        return Counter(y).most_common(1)[0][0]
+        class_scores = {}
+
+        for label in y:
+            w = self.class_weights[label] if self.class_weights is not None else 1.0
+            class_scores[label] = class_scores.get(label, 0) + w
+
+        return max(class_scores, key=class_scores.get)
 
     def fit(self, X, y):
         dataset = np.concatenate((X, y.reshape(-1, 1)), axis=1)
@@ -131,7 +145,7 @@ class DTree:
         return np.array([self._traverse_tree(x, self.root) for x in X])
 
 class RForest_MPI:
-    def __init__(self, num_trees=10, max_depth=10, min_samples=2, max_features=None, comm=None):
+    def __init__(self, num_trees=10, max_depth=10, min_samples=2, max_features=None, comm=None, class_weights=None):
         self.num_trees = num_trees
         self.max_depth = max_depth
         self.min_samples = min_samples
@@ -139,6 +153,7 @@ class RForest_MPI:
         self.comm = comm or MPI.COMM_WORLD
         self.trees = []
         self.cached_trees = None
+        self.class_weights = class_weights
 
     def _bootstrap_sample(self, X, y):
         n_samples = X.shape[0]
@@ -156,7 +171,6 @@ class RForest_MPI:
             return total / s if s > 0 else total
         return None
 
-
     def _local_tree_count(self):
         size = self.comm.Get_size()
         rank = self.comm.Get_rank()
@@ -165,7 +179,6 @@ class RForest_MPI:
 
 
     def fit(self, X, y):
-
         comm = self.comm
         rank = comm.Get_rank()
 
@@ -188,7 +201,9 @@ class RForest_MPI:
         for i in range(n_local):
             tree = DTree(min_samples=self.min_samples,
                          max_depth=self.max_depth,
-                         max_feats=max_features)
+                         max_feats=max_features,
+                        class_weights=self.class_weights)
+            
             X_s, y_s = self._bootstrap_sample(X, y)
             tree.fit(X_s, y_s)
             self.trees.append(tree)

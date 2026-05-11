@@ -2,6 +2,7 @@ import pandas as pd
 import yfinance as y
 import argparse
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 from features import RSI, sto_osc, will_R, OBV
 
@@ -11,26 +12,34 @@ from features import RSI, sto_osc, will_R, OBV
 # features: momentum, volativity, trend, volume behavior
 
 def build_sequ(df, window=60):
-    X, y = [], []
+    X, y, fwd_rets, prices = [], [], [], []
+    scaler = StandardScaler()
 
-    df["fwd_ret"] = df["Close"].pct_change(5).shift(-5)
+    df["fwd_ret"] = df["Close"].pct_change(20).shift(-20)
     df["target"] = 0
     df.loc[df["fwd_ret"] > 0.01, "target"] = 1
     df.loc[df["fwd_ret"] < -0.01, "target"] = -1
 
+    df = df.dropna(subset=["fwd_ret"])
+
     feature_cols = [c for c in df.columns if c not in ["Date", "ticker", "target", "fwd_ret"]]
-    data = df[feature_cols].values  # snapshot AFTER feature cols are ready
+    df[feature_cols] = scaler.fit_transform(df[feature_cols])
+    data = df[feature_cols].values
     targets = df["target"].values
+    fwd_ret_vals = df["fwd_ret"].values
+    prices_vals = df["Close"].values
 
-    for i in range(len(df) - window - 5):  # -5 to avoid label leakage at the end
+    for i in range(len(df) - window - 5):
         X.append(data[i:i+window])
-        y.append(targets[i + window])      # single label at window end
+        y.append(targets[i + window])
+        fwd_rets.append(fwd_ret_vals[i + window])
+        prices.append(prices_vals[i + window])
 
-    return np.array(X), np.array(y)
+    return np.array(X), np.array(y), np.array(fwd_rets), np.array(prices)
 
 def main(args):
 
-	stocks = ["AAPL", "AMD", "GOOGL", "AMZN", "BA", "CAT", "CELH", "XOM", "HAS", "JNJ", "NVDA", "ORCL", "RDDT", "^GSPC"]   # Technically stocks and ETFs
+	stocks = ["AAPL", "AMD", "GOOGL", "AMZN", "BA", "CAT", "NVDA", "ORCL", "RDDT", "^GSPC"]   # Technically stocks and ETFs
 
 	dfs = []
 
@@ -43,10 +52,9 @@ def main(args):
 		df["ticker"] = s
 		if args.type == "time":
 			df = df.dropna()
-			# feature_cols = [col for col in df.columns if col not in ["Date", "ticker", "target", "fwd_ret"]]
-			X, y_ = build_sequ(df, 60)
+			X, y_, fwd_rets, price = build_sequ(df, 60)
 
-			dfs.append((X, y_))
+			dfs.append((X, y_, fwd_rets, price))
 
 		elif args.type == "tabular":
 
@@ -94,8 +102,8 @@ def main(args):
 			df["RSI_change"] = df["RSI"].diff()
 
 		# Stochastic Oscillator
-			df["Sto_Osc"] = sto_osc(df["Close"], 14)
-			df["WillR"] = will_R(df["Close"], 14)
+			#df["Sto_Osc"] = sto_osc(df["Close"], 14)
+			#df["WillR"] = will_R(df["Close"], 14)
 
 		# OBV
 			df["OBV"] = OBV(df["Close"], df["Volume"])
@@ -108,24 +116,24 @@ def main(args):
 			#df["ret_rel_market"] = df["ret_5d"] - market_ret_5d
 
 # Price momentum ranked cross-sectionally (very powerful)
-			df["mom_1m"] = df["Close"].pct_change(21)
-			df["mom_3m"] = df["Close"].pct_change(63)
-			df["mom_6m"] = df["Close"].pct_change(126)
-			df["mom_12m_skip1m"] = df["Close"].shift(21).pct_change(252)  # skip 1mo, classic factor
+			#df["mom_1m"] = df["Close"].pct_change(21)
+			#df["mom_3m"] = df["Close"].pct_change(63)
+			#df["mom_6m"] = df["Close"].pct_change(126)
+			#df["mom_12m_skip1m"] = df["Close"].shift(21).pct_change(252)  # skip 1mo, classic factor
 
 # Mean reversion
-			df["dist_from_ma50"] = (df["Close"] - df["ma_50"]) / df["ma_50"]
-			df["dist_from_ma200"] = (df["Close"] - df["ma_200"]) / df["ma_200"]
+			#df["dist_from_ma50"] = (df["Close"] - df["ma_50"]) / df["ma_50"]
+			#df["dist_from_ma200"] = (df["Close"] - df["ma_200"]) / df["ma_200"]
 
 # Volatility-adjusted momentum
-			df["sharpe_5d"] = df["ret_1d"].rolling(5).mean() / (df["ret_1d"].rolling(5).std() + 1e-9)
-			df["sharpe_20d"] = df["ret_1d"].rolling(20).mean() / (df["ret_1d"].rolling(20).std() + 1e-9)
+			#df["sharpe_5d"] = df["ret_1d"].rolling(5).mean() / (df["ret_1d"].rolling(5).std() + 1e-9)
+			#df["sharpe_20d"] = df["ret_1d"].rolling(20).mean() / (df["ret_1d"].rolling(20).std() + 1e-9)
 
 # Volume-price divergence
-			df["price_vol_diverge"] = df["ret_5d"] / (df["vol_surprise"] + 1e-9)
+			#df["price_vol_diverge"] = df["ret_5d"] / (df["vol_surprise"] + 1e-9)
 
 # Trend strength (ADX-like)
-			df["trend_consistency"] = df["ret_1d"].rolling(10).apply(lambda x: np.sum(x > 0) / len(x))
+			#df["trend_consistency"] = df["ret_1d"].rolling(10).apply(lambda x: np.sum(x > 0) / len(x))
 
 # Lagged returns (autocorrelation signal)
 			for lag in [1, 2, 3, 5, 10]:
@@ -151,11 +159,11 @@ def main(args):
 		full_df.to_csv("dataset.csv", index=False)
 
 	elif args.type == "time":
-		X_all = np.concatenate([x for x, _ in dfs], axis=0)
-		y_all = np.concatenate([y for _, y in dfs], axis=0)
+		X_all = np.concatenate([x for x, _, __, ___ in dfs], axis=0)
+		y_all = np.concatenate([y for _, y, __, ___ in dfs], axis=0); fwd_all = np.concatenate([f for _, _, f, ___ in dfs], axis=0); price = np.concatenate([p for _, _, ___, p in dfs], axis=0)
 
 		np.save("X.npy", X_all)
-		np.save("y.npy", y_all)
+		np.save("y.npy", y_all); np.save("fwd_ret.npy", fwd_all); np.save("prices.npy", price)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

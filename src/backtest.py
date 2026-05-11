@@ -2,8 +2,8 @@ import numpy as np
 import argparse
 import pickle
 import json
-from train import load_csv, train_test_split
 import matplotlib.pyplot as plt
+import torch
 from strats import *
 
 def pred_alpha(model, X_test, y_test, model_type, proba = None):
@@ -23,22 +23,27 @@ def pred_alpha(model, X_test, y_test, model_type, proba = None):
         preds = model.predict(X_test)
         alpha = preds.astype(np.float64)
 
+    elif model_type == "LSTM":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        preds = model.predict(X_test, device)
+        alpha = (preds - 1).astype(np.float64)
+
     # z score normalization
     alpha = (alpha - np.mean(alpha)) / (np.std(alpha) + 1e-8)
 
     return alpha
 
 class BackTest():
-    def __init__(self, strat, alpha, y_true, vol, thresh = 0.5, k = 0.1, prices=None, transaction_cost=0.001, y_true_returns=None):
+    def __init__(self, strat, alpha, y_true, vol=None, thresh = 0.5, k = 0.1, prices=None, transaction_cost=0.001, y_true_returns=None):
         self.alpha = alpha
         self.threshold = thresh
         self.k = k
         self.vol = vol
-        self.strategy = self.build_strat(strat)
-        self.y_true = np.array(y_true)
+        self.fwd_rets = y_true_returns
         self.prices = prices
         self.tc = transaction_cost
-        self.fwd_rets = y_true_returns
+        self.strategy = self.build_strat(strat)
+        self.y_true = np.array(y_true)
 
     def build_strat(self, name):
         if name == "sign":
@@ -48,8 +53,21 @@ class BackTest():
         elif name == "topk":
             return TopKStrategy(self.alpha, k=self.k)
         elif name == "volscaled":
+            if self.vol is None:
+                self.vol = self.compute_vol(self.fwd_rets)
             return VolScaledStrategy(self.alpha, self.vol)
 
+    def compute_vol(self, returns, window=20):
+        vol = np.zeros_like(returns)
+    
+        for i in range(len(returns)):
+            if i < window:
+                vol[i] = np.std(returns[:i+1])
+            else:
+                vol[i] = np.std(returns[i-window:i])
+    
+        return vol + 1e-8
+    
     def find_rets(self):
         raw_returns = self.fwd_rets
 
