@@ -1,6 +1,6 @@
 # Klaud Portfolio Predictor
 
-I wanted to use multiple ML methods to predict future stock trends. The catch is all of the stocks I am using them for are in my investment banking portfolio.
+- Using ML models to predict stock movements
 
 ## Plan
 
@@ -14,3 +14,15 @@ I wanted to use multiple ML methods to predict future stock trends. The catch is
 - Random Forest, SVM, Gradient Boosting for tabular data
 - RNN/LSTM for time series sequence
 - RL for making buy/sell decisions
+
+## Project Structure
+KlaudPortfolioPredictor/<br>
+├── configs/       # Model and data configs<br>
+├── notes/         # Research notes<br>
+├── papers/        # Reference papers<br>
+├── src/           # Source code<br>
+└── TODO.md        # Roadmap<br>
+
+## Roadmap
+
+See [TODO.md](./TODO.md) for planned features and progress
