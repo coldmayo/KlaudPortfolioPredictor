@@ -1,19 +1,53 @@
 # Klaud Portfolio Predictor
 
-- Using ML models to predict stock movements
+## Overveiw
 
-## Plan
+Predicts stock movement as up (+1), neutral (0), or down (-1) using tabular 
+   and time series data using various ML models. Pulls 10 years of data via yfinance and evaluates 
+   strategies using Sharpe ratio, Sortino, max drawdown, and more.
 
-- Make prediction every day
-- pull data either every hour or daily to update
-- check which models do the best every day
-- Hopefully post this game on my portfolio website
+## Models
 
-## ML model thought process
+| Type | Models |
+|------|--------|
+| Tabular | Random Forest, SVM, Gradient Boosting |
+| Time Series | RNN, LSTM |
 
-- Random Forest, SVM, Gradient Boosting for tabular data
-- RNN/LSTM for time series sequence
-- RL for making buy/sell decisions
+## Usage
+
+### Installation
+
+```bash
+# Clone repo
+$ git clone https://github.com/coldmayo/KlaudPortfolioPredictor.git
+# cd into project
+$ cd KlaudPortfolioPredictor
+# Install needed Python packages
+$ pip install -r requirements.txt
+```
+
+### Data Generation
+
+```bash
+# cd into source code
+$ cd src
+# Run data gen code for tabular data
+$ python build_dataset.py -t tabular
+# Run data gen code for time series data
+$ python build_dataset.py -t time
+```
+
+### Training and Backtesting
+
+```bash
+# On a HPC
+# For LSTM model
+$ sbatch LSTM.slurm
+# For Parallelized Random Forest 
+$ sbatch RF_MPI.slurm
+# Running Locally
+$ python train.py -c ../configs/SVM.json
+```
 
 ## Project Structure
 KlaudPortfolioPredictor/<br>
