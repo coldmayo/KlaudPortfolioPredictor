@@ -1,10 +1,9 @@
 {
     "data_pth": "dataset.csv",
     "model_type": "Random Forest MPI",
-    "num_trees": 75,
-    "max_depth": 20,
-    "min_samples": 20,
-    "max_features": 25,
-    "epochs": -1,
+    "num_trees": 35,
+    "max_depth": 15,
+    "min_samples": 15,
+    "max_features": 20,
     "model_out": "rf_mpi.pkl"
 }

@@ -25,12 +25,13 @@ def load_csv(pth, silent=False):
         print(correlation_series.head(10))
 
     fwd_ret = df["fwd_ret"].values
+    vol = df["volatility_20"].values
     
     X = df.drop(columns=["target", "Date", "fwd_ret"]).values.astype(np.float64)
     y = df["target"].values.astype(np.int64)
     dates = df["Date"].values
 
-    return X, y, dates, fwd_ret
+    return X, y, dates, fwd_ret, vol
 
 def balance_classes(X, y, dates, fwd_ret, random_state=42):
     rng = np.random.default_rng(random_state)
@@ -46,13 +47,24 @@ def balance_classes(X, y, dates, fwd_ret, random_state=42):
     keep_indices = np.sort(np.concatenate(keep_indices))
     return X[keep_indices], y[keep_indices], dates[keep_indices], fwd_ret[keep_indices]
 
-def train_test_split(x, y, dates, fwd_ret, split_date, random_state=42):
+def compute_class_weights(y):
+    classes, counts = np.unique(y, return_counts=True)
+    total = len(y)
+
+    weights = {}
+    for c, count in zip(classes, counts):
+        weights[c] = total / (len(classes) * count)
+
+    return weights
+
+def train_test_split(x, y, dates, fwd_ret, vol, split_date, random_state=42):
     mask = dates < np.datetime64(split_date)
     X_train, X_test = x[mask], x[~mask]
     y_train, y_test = y[mask], y[~mask]
     fwd_ret_train, fwd_ret_test = fwd_ret[mask], fwd_ret[~mask]
+    vol_train, vol_test = vol[mask], vol[~mask]
 
-    return X_train, X_test, y_train, y_test, fwd_ret_train, fwd_ret_test
+    return X_train, X_test, y_train, y_test, fwd_ret_train, fwd_ret_test, vol_train, vol_test
 
 def main(args):
     comm = MPI.COMM_WORLD
@@ -67,32 +79,35 @@ def main(args):
     data_pth = config.get("data_pth", "dataset.csv")
 
     if rank == 0:
-        X, y, dates, fwd_ret = load_csv(data_pth, silent=False)
+        X, y, dates, fwd_ret, vol = load_csv(data_pth, silent=False)
         #mask = y != 0
         #X, y, dates = X[mask], y[mask], dates[mask]
     else:
-        X = y = dates = fwd_ret = None
+        X = y = dates = fwd_ret = vol = None
 
     X = comm.bcast(X, root=0)
     y = comm.bcast(y, root=0)
     dates  = comm.bcast(dates, root=0)
     fwd_ret = comm.bcast(fwd_ret, root=0)
+    vol = comm.bcast(vol, root=0)
 
-    X, y, dates, fwd_ret = balance_classes(X, y, dates, fwd_ret)
+    #X, y, dates, fwd_ret = balance_classes(X, y, dates, fwd_ret)
 
-    X_train, X_test, y_train, y_test, fwd_ret_train, fwd_ret_test = train_test_split(
-        X, y, dates, fwd_ret, split_date=config.get("split_date", "2025-05-04")
+    X_train, X_test, y_train, y_test, fwd_ret_train, fwd_ret_test, vol_train, vol_test = train_test_split(
+        X, y, dates, fwd_ret, vol, split_date=config.get("split_date", "2025-05-04")
     )
 
     model_type = config.get("model_type", "Random Forest MPI")
     
     if model_type == "Random Forest MPI":
+        class_weights = compute_class_weights(y_train)
         model = RForest_MPI(
             num_trees=config.get("num_trees", 45),
             max_depth=config.get("max_depth", 10),
             min_samples=config.get("min_samples", 2),
             max_features=config.get("max_features", None),
-            comm=comm
+            comm=comm,
+            class_weights = compute_class_weights(y_test)
         )
 
         if rank == 0:
@@ -154,8 +169,10 @@ def main(args):
 
             print("Starting Backtesting...")
             alpha = pred_alpha(model, X_test, y_test, model_type="Random Forest", proba = probas)
-            bt = BackTest(alpha=alpha, y_true=y_test, prices=X_test[:, 0], y_true_returns=fwd_ret_test)
-            results = bt.run()
+            for strat in ["sign", "threshold", "topk", "volscaled"]:
+                print(f"Testing {strat} Strategy")
+                bt = BackTest(strat = strat, alpha=alpha, y_true=y_test, vol = vol_test, prices=X_test[:, 0], y_true_returns=fwd_ret_test)
+                results = bt.run()
 
     elif model_type == "Random Forest Skl":
         model = RForest_Sklearn(
@@ -169,7 +186,7 @@ def main(args):
         if rank == 0:
             print(f"Starting Training: {model.num_trees} trees on {size} ranks...")
 
-        model.fit(X_train, y_train)
+        model.fit(X_train, y_train, sample_weight=compute_class_weights(y_test))
 
         comm.Barrier()
 

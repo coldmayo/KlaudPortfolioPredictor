@@ -1,0 +1,8 @@
+{
+    "X_pth": "X.npy",
+    "y_pth": "y.npy",
+    "model_out": "lstm_skl.pkl",
+    "hidden_size": 64,
+    "num_layers": 5,
+    "dropout": 0.2
+}
